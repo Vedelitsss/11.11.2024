@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>11.11.2024 💗</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000000;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="scene"></canvas>
+
+<script>
+const canvas = document.getElementById("scene");
+const ctx = canvas.getContext("2d");
+
+let W = 0;
+let H = 0;
+let stars = [];
+let startTime = null;
+
+// Загружаем 8 фотографий
+const photos = [];
+
+for (let i = 1; i <= 8; i++) {
+    const img = new Image();
+    img.src = "photo" + i + ".jpg";
+    photos.push(img);
+}
+
+// Форма пиксельного сердца
+const heartPattern = [
+    "0001100000011000",
+    "0011110000111100",
+    "0111111001111110",
+    "1111111111111111",
+    "1111111111111111",
+    "1111111111111111",
+    "1111111111111111",
+    "0111111111111110",
+    "0011111111111100",
+    "0001111111111000",
+    "0000111111110000",
+    "0000011111100000",
+    "0000001111000000",
+    "0000000110000000"
+];
+
+const heartPixels = [];
+
+heartPattern.forEach((line, y) => {
+    for (let x = 0; x < line.length; x++) {
+        if (line[x] === "1") {
+            heartPixels.push({
+                x: (x - 8) * 6,
+                y: (y - 7) * 6
+            });
+        }
+    }
+});
+
+function random(min, max) {
+    return min + Math.random() * (max - min);
+}
+
+function smooth(value) {
+    value = Math.max(0, Math.min(1, value));
+    return value * value * (3 - 2 * value);
+}
+
+// Создание звёзд
+function resize() {
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+
+    W = window.innerWidth;
+    H = window.innerHeight;
+
+    canvas.width = W * ratio;
+    canvas.height = H * ratio;
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    stars = [];
+
+    for (let i = 0; i < 230; i++) {
+        stars.push({
+            x: random(0, W),
+            y: random(0, H),
+            size: random(1, 2.5),
+            phase: random(0, Math.PI * 2),
+            speed: random(0.5, 2)
+        });
+    }
+}
+
+// Чёрный фон с белыми звёздами
+function drawBackground(time) {
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, W, H);
+
+    stars.forEach(s => {
+        const alpha = 0.2 + 0.8 *
+            (0.5 + 0.5 * Math.sin(
+                time / 1000 * s.speed + s.phase
+            ));
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+    });
+
+    ctx.globalAlpha = 1;
+}
+
+// Рисуем пиксельное сердце
+function drawHeart(x, y, scale, time, opacity = 1) {
+    const pulse = 1 + Math.sin(time / 300) * 0.045;
+
+    ctx.save();
+
+    ctx.translate(x, y);
+    ctx.scale(scale * pulse, scale * pulse);
+
+    ctx.globalAlpha = opacity;
+
+    ctx.shadowColor = "#ff65bd";
+    ctx.shadowBlur = 25;
+
+    heartPixels.forEach((p, i) => {
+        ctx.fillStyle = i % 7 === 0
+            ? "#ffe1f2"
+            : "#f58ac8";
+
+        ctx.fillRect(p.x, p.y, 6, 6);
+    });
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+    ctx.globalAlpha = 1;
+}
+
+// Маленькое сердечко
+function drawSmallHeart(x, y, time, opacity) {
+    drawHeart(x, y, 0.25, time, opacity);
+}
+
+// Рисуем фотографию
+function drawPhoto(img, x, y, w, h, opacity) {
+    ctx.save();
+
+    ctx.globalAlpha = opacity;
+
+    ctx.fillStyle = "#ffb7df";
+    ctx.shadowColor = "#ff65bd";
+    ctx.shadowBlur = 12;
+    ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#211027";
+    ctx.fillRect(x, y, w, h);
+
+    if (img.complete && img.naturalWidth > 0) {
+        const ratio = Math.max(
+            w / img.naturalWidth,
+            h / img.naturalHeight
+        );
+
+        const dw = img.naturalWidth * ratio;
+        const dh = img.naturalHeight * ratio;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        ctx.clip();
+        ctx.drawImage(
+            img,
+            x + (w - dw) / 2,
+            y + (h - dh) / 2,
+            dw,
+            dh
+        );
+
+        ctx.restore();
+    }
+
+    ctx.restore();
+    ctx.globalAlpha = 1;
+}
+
+// Галерея маленьких сердечек и фотографий
+function drawGallery(time, opacity) {
+    const columns = W < 600 ? 3 : 4;
+    const gap = W < 600 ? 15 : 24;
+    const margin = W < 600 ? 18 : 55;
+
+    const cardW = Math.min(
+        150,
+        (W - margin * 2 - gap * (columns - 1)) / columns
+    );
+
+    const cardH = Math.min(
+        95,
+        Math.max(55, H * 0.12)
+    );
+
+    const totalW = columns * cardW + (columns - 1) * gap;
+    const startX = (W - totalW) / 2;
+    const startY = H * 0.64;
+
+    for (let i = 0; i < photos.length; i++) {
+        const col = i % columns;
+        const row = Math.floor(i / columns);
+
+        const x = startX + col * (cardW + gap);
+        const y = startY + row * (cardH + 35);
+
+        const appear = smooth((time - 8200 - i * 350) / 900);
+        const a = opacity * appear;
+
+        if (a <= 0) continue;
+
+        const float = Math.sin(time / 500 + i) * 4;
+
+        // Маленькое сердечко
+        drawSmallHeart(
+            x + cardW / 2,
+            y + 7 + float,
+            time + i * 100,
+            a
+        );
+
+        // Фотография под сердечком
+        drawPhoto(
+            photos[i],
+            x,
+            y + 29 + float,
+            cardW,
+            cardH,
+            a
+        );
+    }
+}
+
+// Надпись Ich liebe dich!)
+function drawLoveText(time, opacity) {
+    ctx.save();
+
+    ctx.globalAlpha = opacity;
+
+    ctx.font = "bold 23px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.fillStyle = "#ffc4e7";
+    ctx.shadowColor = "#ff55bb";
+    ctx.shadowBlur = 18;
+
+    const y = H * 0.595;
+    const pulse = 1 + Math.sin(time / 450) * 0.04;
+
+    ctx.translate(W / 2, y);
+    ctx.scale(pulse, pulse);
+
+    ctx.fillText("Ich liebe dich!)", 0, 0);
+
+    ctx.restore();
+}
+
+// Основная анимация
+function animate(timestamp) {
+    if (startTime === null) {
+        startTime = timestamp;
+    }
+
+    const time = timestamp - startTime;
+
+    drawBackground(time);
+
+    const centerX = W / 2;
+    const centerY = H * 0.29;
+
+    const baseSize = Math.min(W, H) / 440;
+
+    // Два сердца постепенно соединяются
+    const merge = smooth((time - 2500) / 3000);
+    const distance = 105 * baseSize * (1 - merge);
+
+    const twoOpacity = 1 - smooth((time - 5000) / 1000);
+
+    if (twoOpacity > 0) {
+        drawHeart(
+            centerX - distance,
+            centerY,
+            baseSize * 0.85,
+            time,
+            twoOpacity
+        );
+
+        drawHeart(
+            centerX + distance,
+            centerY,
+            baseSize * 0.85,
+            time,
+            twoOpacity
+        );
+    }
+
+    // Одно большое сердце
+    const singleOpacity = smooth((time - 5500) / 1100);
+
+    if (singleOpacity > 0) {
+        drawHeart(
+            centerX,
+            centerY,
+            baseSize * 1.4,
+            time,
+            singleOpacity
+        );
+    }
+
+    // Дата
+    const dateOpacity = smooth((time - 6800) / 1000);
+
+    if (dateOpacity > 0) {
+        ctx.save();
+
+        ctx.globalAlpha = dateOpacity;
+        ctx.font = "bold 23px monospace";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#ffc4e7";
+
+        ctx.shadowColor = "#ff55bb";
+        ctx.shadowBlur = 15;
+
+        ctx.fillText(
+            "11.11.2024",
+            centerX,
+            centerY + 95 * baseSize
+        );
+
+        ctx.restore();
+    }
+
+    // Появление фотографий
+    const galleryOpacity = smooth((time - 8000) / 1200);
+
+    if (galleryOpacity > 0) {
+        drawGallery(time, galleryOpacity);
+    }
+
+    // Надпись рисуется последней, поэтому фотографии её не закроют
+    const loveOpacity = smooth((time - 8500) / 1200);
+
+    if (loveOpacity > 0) {
+        drawLoveText(time, loveOpacity);
+    }
+
+    requestAnimationFrame(animate);
+}
+
+// Запуск
+resize();
+
+window.addEventListener("resize", resize);
+
+requestAnimationFrame(animate);
+
+</script>
+
+</body>
+</html>
