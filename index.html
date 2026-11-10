@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>11.11.2024 💗</title>
+<title>11.11.2024. 💗</title>
 
 <style>
 * {
@@ -16,7 +16,7 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #000000;
+    background: #000;
 }
 
 canvas {
@@ -89,7 +89,7 @@ function smooth(value) {
     return value * value * (3 - 2 * value);
 }
 
-// Создание звёзд
+// Размер экрана
 function resize() {
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -114,7 +114,7 @@ function resize() {
     }
 }
 
-// Чёрный фон с белыми звёздами
+// Чёрный фон и звёзды
 function drawBackground(time) {
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, W, H);
@@ -133,7 +133,7 @@ function drawBackground(time) {
     ctx.globalAlpha = 1;
 }
 
-// Рисуем пиксельное сердце
+// Пиксельное сердце
 function drawHeart(x, y, scale, time, opacity = 1) {
     const pulse = 1 + Math.sin(time / 300) * 0.045;
 
@@ -143,7 +143,6 @@ function drawHeart(x, y, scale, time, opacity = 1) {
     ctx.scale(scale * pulse, scale * pulse);
 
     ctx.globalAlpha = opacity;
-
     ctx.shadowColor = "#ff65bd";
     ctx.shadowBlur = 25;
 
@@ -155,17 +154,16 @@ function drawHeart(x, y, scale, time, opacity = 1) {
         ctx.fillRect(p.x, p.y, 6, 6);
     });
 
-    ctx.shadowBlur = 0;
     ctx.restore();
     ctx.globalAlpha = 1;
 }
 
-// Маленькое сердечко
+// Маленькое сердце
 function drawSmallHeart(x, y, time, opacity) {
     drawHeart(x, y, 0.25, time, opacity);
 }
 
-// Рисуем фотографию
+// Фотография
 function drawPhoto(img, x, y, w, h, opacity) {
     ctx.save();
 
@@ -173,8 +171,8 @@ function drawPhoto(img, x, y, w, h, opacity) {
 
     ctx.fillStyle = "#ffb7df";
     ctx.shadowColor = "#ff65bd";
-    ctx.shadowBlur = 12;
-    ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+    ctx.shadowBlur = 10;
+    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
 
     ctx.shadowBlur = 0;
     ctx.fillStyle = "#211027";
@@ -190,9 +188,11 @@ function drawPhoto(img, x, y, w, h, opacity) {
         const dh = img.naturalHeight * ratio;
 
         ctx.save();
+
         ctx.beginPath();
         ctx.rect(x, y, w, h);
         ctx.clip();
+
         ctx.drawImage(
             img,
             x + (w - dw) / 2,
@@ -203,58 +203,67 @@ function drawPhoto(img, x, y, w, h, opacity) {
 
         ctx.restore();
     }
-
     ctx.restore();
     ctx.globalAlpha = 1;
 }
 
-// Галерея маленьких сердечек и фотографий
+// Галерея из 8 фотографий
 function drawGallery(time, opacity) {
-    const columns = W < 600 ? 3 : 4;
-    const gap = W < 600 ? 15 : 24;
-    const margin = W < 600 ? 18 : 55;
+
+    const mobile = W < 600;
+
+    const columns = 4;
+    const gap = mobile ? 7 : 24;
+    const margin = mobile ? 9 : 55;
 
     const cardW = Math.min(
-        150,
-        (W - margin * 2 - gap * (columns - 1)) / columns
+        mobile ? 100 : 150,
+        (W - margin * 2 - gap * 3) / 4
     );
 
-    const cardH = Math.min(
-        95,
-        Math.max(55, H * 0.12)
-    );
+    const cardH = mobile
+        ? Math.min(75, H * 0.105)
+        : Math.min(95, H * 0.12);
 
-    const totalW = columns * cardW + (columns - 1) * gap;
+    const rowGap = mobile ? 22 : 38;
+
+    const totalW = columns * cardW + gap * 3;
     const startX = (W - totalW) / 2;
-    const startY = H * 0.64;
 
-    for (let i = 0; i < photos.length; i++) {
-        const col = i % columns;
-        const row = Math.floor(i / columns);
+    // Галерея располагается ниже надписи
+    const startY = mobile ? H * 0.52 : H * 0.55;
+
+    for (let i = 0; i < 8; i++) {
+
+        const col = i % 4;
+        const row = Math.floor(i / 4);
 
         const x = startX + col * (cardW + gap);
-        const y = startY + row * (cardH + 35);
+        const y = startY + row * (cardH + rowGap);
 
-        const appear = smooth((time - 8200 - i * 350) / 900);
+        const appear = smooth(
+            (time - 8200 - i * 350) / 900
+        );
+
         const a = opacity * appear;
 
         if (a <= 0) continue;
 
-        const float = Math.sin(time / 500 + i) * 4;
+        const float = Math.sin(time / 500 + i) * 2;
 
-        // Маленькое сердечко
+        // Сердечко над фотографией
         drawSmallHeart(
             x + cardW / 2,
-            y + 7 + float,
+            y + 4 + float,
             time + i * 100,
             a
         );
 
-        // Фотография под сердечком
+        // Фотография
         drawPhoto(
             photos[i],
             x,
-            y + 29 + float,
+            y + 21 + float,
             cardW,
             cardH,
             a
@@ -262,24 +271,38 @@ function drawGallery(time, opacity) {
     }
 }
 
-// Надпись Ich liebe dich!)
-function drawLoveText(time, opacity) {
+// Дата и надпись
+function drawText(time, dateOpacity, loveOpacity) {
+
+    const mobile = W < 600;
+
+    const dateY = mobile ? H * 0.34 : H * 0.40;
+    const loveY = mobile ? H * 0.435 : H * 0.47;
+
     ctx.save();
 
-    ctx.globalAlpha = opacity;
-
-    ctx.font = "bold 23px Arial";
+    // Дата
+    ctx.globalAlpha = dateOpacity;
+    ctx.font = mobile ? "bold 21px monospace" : "bold 25px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    ctx.fillStyle = "#ffc4e7";
 
+    ctx.shadowColor = "#ff55bb";
+    ctx.shadowBlur = 15;
+
+    ctx.fillText("11.11.2024.", W / 2, dateY);
+
+    // Ich liebe dich!)
+    ctx.globalAlpha = loveOpacity;
+    ctx.font = mobile ? "bold 19px Arial" : "bold 24px Arial";
     ctx.fillStyle = "#ffc4e7";
     ctx.shadowColor = "#ff55bb";
     ctx.shadowBlur = 18;
 
-    const y = H * 0.595;
-    const pulse = 1 + Math.sin(time / 450) * 0.04;
+    const pulse = 1 + Math.sin(time / 450) * 0.035;
 
-    ctx.translate(W / 2, y);
+    ctx.translate(W / 2, loveY);
     ctx.scale(pulse, pulse);
 
     ctx.fillText("Ich liebe dich!)", 0, 0);
@@ -287,8 +310,9 @@ function drawLoveText(time, opacity) {
     ctx.restore();
 }
 
-// Основная анимация
+// Главная анимация
 function animate(timestamp) {
+
     if (startTime === null) {
         startTime = timestamp;
     }
@@ -298,17 +322,21 @@ function animate(timestamp) {
     drawBackground(time);
 
     const centerX = W / 2;
-    const centerY = H * 0.29;
+
+    // Сердце выше, чтобы освободить место
+    const mobile = W < 600;
+    const centerY = mobile ? H * 0.19 : H * 0.23;
 
     const baseSize = Math.min(W, H) / 440;
 
-    // Два сердца постепенно соединяются
+    // Два сердца соединяются
     const merge = smooth((time - 2500) / 3000);
     const distance = 105 * baseSize * (1 - merge);
 
     const twoOpacity = 1 - smooth((time - 5000) / 1000);
 
     if (twoOpacity > 0) {
+
         drawHeart(
             centerX - distance,
             centerY,
@@ -330,6 +358,7 @@ function animate(timestamp) {
     const singleOpacity = smooth((time - 5500) / 1100);
 
     if (singleOpacity > 0) {
+
         drawHeart(
             centerX,
             centerY,
@@ -339,42 +368,22 @@ function animate(timestamp) {
         );
     }
 
-    // Дата
+    // Появление даты
     const dateOpacity = smooth((time - 6800) / 1000);
 
-    if (dateOpacity > 0) {
-        ctx.save();
+    // Появление надписи
+    const loveOpacity = smooth((time - 7500) / 1200);
 
-        ctx.globalAlpha = dateOpacity;
-        ctx.font = "bold 23px monospace";
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#ffc4e7";
+    // Появление галереи
+    const galleryOpacity = smooth((time - 8200) / 1200);
 
-        ctx.shadowColor = "#ff55bb";
-        ctx.shadowBlur = 15;
-
-        ctx.fillText(
-            "11.11.2024",
-            centerX,
-            centerY + 95 * baseSize
-        );
-
-        ctx.restore();
-    }
-
-    // Появление фотографий
-    const galleryOpacity = smooth((time - 8000) / 1200);
-
+    // Сначала фотографии
     if (galleryOpacity > 0) {
         drawGallery(time, galleryOpacity);
     }
 
-    // Надпись рисуется последней, поэтому фотографии её не закроют
-    const loveOpacity = smooth((time - 8500) / 1200);
-
-    if (loveOpacity > 0) {
-        drawLoveText(time, loveOpacity);
-    }
+    // Затем надписи: они всегда остаются поверх фотографий
+    drawText(time, dateOpacity, loveOpacity);
 
     requestAnimationFrame(animate);
 }
@@ -385,7 +394,6 @@ resize();
 window.addEventListener("resize", resize);
 
 requestAnimationFrame(animate);
-
 </script>
 
 </body>
